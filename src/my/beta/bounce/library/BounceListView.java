@@ -1,5 +1,7 @@
 package my.beta.bounce.library;
 
+import my.beta.bounce.library.BounceScroller.OnSmoothScrollFinishedListener;
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.os.Build;
@@ -8,10 +10,16 @@ import android.view.View;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 
+@SuppressLint("NewApi")
 public class BounceListView extends ListView implements IBounceInnerView {
 
+	private BounceLayout mBounceParent;
+	
 	public BounceListView(Context context, AttributeSet attrs) {
 		super(context, attrs);
+		if (Build.VERSION.SDK_INT > Build.VERSION_CODES.GINGERBREAD) {
+			setOverScrollMode(View.OVER_SCROLL_NEVER);
+		}
 	}
 
 	@Override
@@ -50,12 +58,27 @@ public class BounceListView extends ListView implements IBounceInnerView {
 		return false;
 	}
 	
+	@Override
+	public void setBounceParent(BounceLayout parent) {
+		mBounceParent = parent;
+	}
+	
 	@TargetApi(Build.VERSION_CODES.GINGERBREAD)
 	@Override
 	protected boolean overScrollBy(int deltaX, int deltaY, int scrollX,
 			int scrollY, int scrollRangeX, int scrollRangeY,
 			int maxOverScrollX, int maxOverScrollY, boolean isTouchEvent) {
-		System.out.println("over:" + maxOverScrollY + "  " + isTouchEvent);
+		System.out.println("deltaY:" + deltaY + " , scrollY:" + scrollY + " , scrollRangeY:" + scrollRangeY + " , maxOverScrollY:" + maxOverScrollY + " , isTouchEvent:" + isTouchEvent);
+
+		if (!isTouchEvent) {
+			mBounceParent.smoothScrollTo(deltaY, new OnSmoothScrollFinishedListener() {
+				
+				@Override
+				public void onSmoothScrollFinished() {
+					mBounceParent.smoothScrollTo(0);
+				}
+			});
+		}
 		return super.overScrollBy(deltaX, deltaY, scrollX, scrollY, scrollRangeX,
 				scrollRangeY, maxOverScrollX, maxOverScrollY, isTouchEvent);
 	}

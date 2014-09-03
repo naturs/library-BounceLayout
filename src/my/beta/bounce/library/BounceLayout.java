@@ -1,6 +1,7 @@
 package my.beta.bounce.library;
 
 
+import my.beta.bounce.library.BounceScroller.OnSmoothScrollFinishedListener;
 import android.content.Context;
 import android.util.AttributeSet;
 import android.view.Gravity;
@@ -27,7 +28,7 @@ public class BounceLayout extends LinearLayout {
 	private Mode mMode = Mode.getDefault();
 	private Mode mCurrentMode;
 	
-	private Scroller mScroller;
+	private BounceScroller mScroller;
 	
 	public BounceLayout(Context context) {
 		super(context);
@@ -41,7 +42,7 @@ public class BounceLayout extends LinearLayout {
 	private void init(Context context) {
 		setOrientation(LinearLayout.VERTICAL);
 		setGravity(Gravity.CENTER);
-		mScroller = new Scroller(context);
+		mScroller = new BounceScroller(context);
 		mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
 		resetCoordinate();
 	}
@@ -56,6 +57,7 @@ public class BounceLayout extends LinearLayout {
 		
 		try {
 			mChildView = (IBounceInnerView) child;
+			mChildView.setBounceParent(this);
 		} catch (ClassCastException e) {
 			throw new IllegalArgumentException("child view must implements IBounceInnerView!");
 		}
@@ -70,6 +72,9 @@ public class BounceLayout extends LinearLayout {
 				requestDisallowInterceptTouchEvent(false);
 				mInitialMotionX = mLastMotionX = ev.getX();
 				mInitialMotionY = mLastMotionY = ev.getY();
+			}
+			if (!mScroller.isFinished()) {
+				mScroller.forceFinished(true);
 			}
 			mIsBeingDragged = false;
 			break;
@@ -139,6 +144,9 @@ public class BounceLayout extends LinearLayout {
 		
 		final int action = event.getAction();
 		switch (action) {
+		case MotionEvent.ACTION_DOWN:
+			break;
+			
 		case MotionEvent.ACTION_MOVE:
 			if (mIsBeingDragged) {
 				mLastMotionY = event.getY();
@@ -158,8 +166,11 @@ public class BounceLayout extends LinearLayout {
 		case MotionEvent.ACTION_CANCEL:
 			if (mIsBeingDragged) {
 				mIsBeingDragged = false;
-				int scrollY = getScrollY();
-				mScroller.startScroll(0, scrollY, 0, -scrollY);
+//				int scrollY = getScrollY();
+//				mScroller.startScroll(0, scrollY, 0, -scrollY);
+				
+				smoothScrollTo(0);
+				
 				invalidate();
 			}
 			
@@ -176,6 +187,34 @@ public class BounceLayout extends LinearLayout {
 			invalidate();
 		}
 	}
+	
+	protected final void smoothScrollTo(int newScrollValue) {
+		if (mScroller.isFinished()) {
+			final int oldScrollValue = getScrollY();
+			if (oldScrollValue != newScrollValue) {
+				mScroller.startScroll(0, oldScrollValue, 0, newScrollValue - oldScrollValue);
+				invalidate();
+			}
+		} else {
+			mScroller.abortAnimation();
+			scrollTo(0, newScrollValue);
+		}
+	}
+	
+	protected final void smoothScrollTo(int newScrollValue, OnSmoothScrollFinishedListener l) {
+		if (mScroller.isFinished()) {
+			final int oldScrollValue = getScrollY();
+			if (oldScrollValue != newScrollValue) {
+				mScroller.startScroll(0, oldScrollValue, 0, newScrollValue - oldScrollValue, l);
+				invalidate();
+			}
+		} else {
+			mScroller.abortAnimation();
+			scrollTo(0, newScrollValue);
+		}
+	}
+	
+	
 	
 	public final void setMode(Mode mode) {
 		if (mode != mMode) {
@@ -223,4 +262,5 @@ public class BounceLayout extends LinearLayout {
 			return this == PULL_FROM_END || this == PULL_FROM_BOTH;
 		}
 	}
+	
 }
