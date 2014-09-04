@@ -1,5 +1,6 @@
 package my.beta.bounce.library;
 
+import my.beta.bounce.library.BounceLayout.Orientation;
 import my.beta.bounce.library.BounceScroller.OnSmoothScrollFinishedListener;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
@@ -63,6 +64,17 @@ public class BounceListView extends ListView implements IBounceInnerView {
 		mBounceParent = parent;
 	}
 	
+	@Override
+	public Orientation getPullOrientation() {
+		return Orientation.VERTICAL;
+	}
+	
+	@Override
+	public void setEmptyView(View emptyView) {
+		mBounceParent.setEmptyView(emptyView);
+		super.setEmptyView(emptyView);
+	}
+	
 	@TargetApi(Build.VERSION_CODES.GINGERBREAD)
 	@Override
 	protected boolean overScrollBy(int deltaX, int deltaY, int scrollX,
@@ -71,7 +83,8 @@ public class BounceListView extends ListView implements IBounceInnerView {
 		System.out.println("deltaY:" + deltaY + " , scrollY:" + scrollY + " , scrollRangeY:" + scrollRangeY + " , maxOverScrollY:" + maxOverScrollY + " , isTouchEvent:" + isTouchEvent);
 
 		if (!isTouchEvent) {
-			mBounceParent.smoothScrollTo(deltaY, new OnSmoothScrollFinishedListener() {
+			// 这里加个150ms的时间，效果会更好一点
+			mBounceParent.smoothScrollTo(deltaY, 150, new OnSmoothScrollFinishedListener() {
 				
 				@Override
 				public void onSmoothScrollFinished() {

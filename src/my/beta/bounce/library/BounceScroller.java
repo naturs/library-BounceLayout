@@ -21,23 +21,24 @@ public class BounceScroller extends Scroller {
 		this.startScroll(startX, startY, dx, dy, duration, null);
 	}
 	
-	public void startScroll(int startX, int startY, int dx, int dy, int duration, OnSmoothScrollFinishedListener listener) {
+	protected void startScroll(int startX, int startY, int dx, int dy, int duration, OnSmoothScrollFinishedListener listener) {
 		super.startScroll(startX, startY, dx, dy, duration);
 		this.mFinishListener = listener;
 	}
 	
-	public void startScroll(int startX, int startY, int dx, int dy, OnSmoothScrollFinishedListener listener) {
+	protected void startScroll(int startX, int startY, int dx, int dy, OnSmoothScrollFinishedListener listener) {
 		super.startScroll(startX, startY, dx, dy);
 		this.mFinishListener = listener;
 	}
 	
 	@Override
 	public boolean computeScrollOffset() {
-		boolean nofinish = super.computeScrollOffset();
-		if (!nofinish && mFinishListener != null) {
+		boolean noFinish = super.computeScrollOffset();
+		if (!noFinish && mFinishListener != null) {
 			mFinishListener.onSmoothScrollFinished();
+			mFinishListener = null;
 		}
-		return nofinish;
+		return noFinish;
 	}
 	
 	static interface OnSmoothScrollFinishedListener {
