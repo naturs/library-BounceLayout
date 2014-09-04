@@ -235,7 +235,18 @@ public class BounceLayout extends LinearLayout {
 	@Override
 	public void computeScroll() {
 		if (mScroller.computeScrollOffset()) {
-			doScroll(mScroller.getCurrY());
+			final int newScrollValue;
+			switch (getPullOrientation()) {
+			case HORIZONTAL:
+				newScrollValue = mScroller.getCurrX();
+				break;
+				
+			case VERTICAL:
+			default:
+				newScrollValue = mScroller.getCurrY();
+				break;
+			}
+			doScroll(newScrollValue);
 			invalidate();
 		}
 	}
@@ -261,12 +272,35 @@ public class BounceLayout extends LinearLayout {
 	
 	protected final void smoothScrollTo(int newScrollValue, int duration, OnSmoothScrollFinishedListener l) {
 		if (mScroller.isFinished()) {
-			final int oldScrollValue = getScrollY();
+			final int oldScrollValue;
+			switch (getPullOrientation()) {
+			case HORIZONTAL:
+				oldScrollValue = getScrollX();
+				break;
+				
+			case VERTICAL:
+			default:
+				oldScrollValue = getScrollY();
+				break;
+			}
 			if (oldScrollValue != newScrollValue) {
-				if (duration > 0) {
-					mScroller.startScroll(0, oldScrollValue, 0, newScrollValue - oldScrollValue, duration, l);
-				} else {
-					mScroller.startScroll(0, oldScrollValue, 0, newScrollValue - oldScrollValue, l);
+				switch (getPullOrientation()) {
+				case HORIZONTAL:
+					if (duration > 0) {
+						mScroller.startScroll(oldScrollValue, 0, newScrollValue - oldScrollValue, 0, duration, l);
+					} else {
+						mScroller.startScroll(oldScrollValue, 0, newScrollValue - oldScrollValue, 0, l);
+					}
+					break;
+					
+				case VERTICAL:
+				default:
+					if (duration > 0) {
+						mScroller.startScroll(0, oldScrollValue, 0, newScrollValue - oldScrollValue, duration, l);
+					} else {
+						mScroller.startScroll(0, oldScrollValue, 0, newScrollValue - oldScrollValue, l);
+					}
+					break;
 				}
 				invalidate();
 			}
