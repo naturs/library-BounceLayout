@@ -31,6 +31,9 @@ public class BounceLayout extends LinearLayout {
 	private float mLastMotionX, mLastMotionY;
 	private float mInitialMotionX, mInitialMotionY;
 	
+	/** 在某些情况下（比如在回弹的过程中点击屏幕），当前Layout的初始scroll值不为0 */
+	private int mInitialScrollValue = 0;
+	
 	private int mTouchSlop;
 	
 	private Mode mMode = Mode.getDefault();
@@ -52,7 +55,7 @@ public class BounceLayout extends LinearLayout {
 		setGravity(Gravity.CENTER);
 		mScroller = new BounceScroller(context);
 		mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
-		resetCoordinate();
+		resetValues();
 	}
 	
 	@Override
@@ -93,10 +96,17 @@ public class BounceLayout extends LinearLayout {
 				mInitialMotionX = mLastMotionX = ev.getX();
 				mInitialMotionY = mLastMotionY = ev.getY();
 			}
+			
+			mIsBeingDragged = false;
+			
 			if (!mScroller.isFinished()) {
 				mScroller.abortAnimation();
+				mInitialScrollValue = getInitialScrollValue();
+				// 如果正在动画的过程，再次点击屏幕，停止掉回弹
+				// 动作，此时的状态应该就是正在拉动的状态
+				mIsBeingDragged = true;
 			}
-			mIsBeingDragged = false;
+			
 			break;
 			
 		case MotionEvent.ACTION_MOVE:
@@ -113,7 +123,7 @@ public class BounceLayout extends LinearLayout {
 			
 		case MotionEvent.ACTION_CANCEL:
 		case MotionEvent.ACTION_UP:
-			resetCoordinate();
+			resetValues();
 			break;
 		}
 		
@@ -146,19 +156,21 @@ public class BounceLayout extends LinearLayout {
 				}
 				absDistance = Math.abs(distance);
 				
-//				if (absDistance >= mTouchSlop) {
-					if (mMode.allowPullFromStart() && distance > 0f && isReadyForPullStart()) {
-						mLastMotionX = tempX;
-						mLastMotionY = tempY;
-						mCurrentMode = Mode.PULL_FROM_START;
-						mIsBeingDragged = true;
-					} else if (mMode.allowPullFromEnd() && distance < 0f && isReadyForPullEnd()) {
-						mLastMotionX = tempX;
-						mLastMotionY = tempY;
-						mCurrentMode = Mode.PULL_FROM_END;
-						mIsBeingDragged = true;
-					}
-//				}
+				// 去掉这个判断，可以使滑动更流畅
+				if (absDistance >= mTouchSlop) {
+				}
+				
+				if (mMode.allowPullFromStart() && distance > 0f && isReadyForPullStart()) {
+					mLastMotionX = tempX;
+					mLastMotionY = tempY;
+					mCurrentMode = Mode.PULL_FROM_START;
+					mIsBeingDragged = true;
+				} else if (mMode.allowPullFromEnd() && distance < 0f && isReadyForPullEnd()) {
+					mLastMotionX = tempX;
+					mLastMotionY = tempY;
+					mCurrentMode = Mode.PULL_FROM_END;
+					mIsBeingDragged = true;
+				}
 			}
 			break;
 		}
@@ -178,9 +190,12 @@ public class BounceLayout extends LinearLayout {
 		final int action = event.getAction();
 		switch (action) {
 		case MotionEvent.ACTION_DOWN:
-			break;
+			Logger.d(LOG_TAG, "onTouchEvent down");
+			// 其实只有在回弹的过程中再次点击屏幕，才会执行到这里
+			return true;
 			
 		case MotionEvent.ACTION_MOVE:
+//			Logger.d(LOG_TAG, "onTouchEvent move");
 			if (mIsBeingDragged) {
 				mLastMotionX = event.getX();
 				mLastMotionY = event.getY();
@@ -201,14 +216,15 @@ public class BounceLayout extends LinearLayout {
 					break;
 				}
 				
+				// 这个scrollValue后面加了一个initial value，是把上一次被终止的回弹scroll值加上
 				switch (mCurrentMode) {
 				case PULL_FROM_END:
-					newScrollValue = Math.round(Math.max(initialMotionValue - lastMotionValue, 0) / FRACTION);
+					newScrollValue = Math.round(Math.max(initialMotionValue - lastMotionValue, 0) / FRACTION) + mInitialScrollValue;
 					break;
 					
 				case PULL_FROM_START:
 				default:
-					newScrollValue = Math.round(Math.min(initialMotionValue - lastMotionValue, 0) / FRACTION);
+					newScrollValue = Math.round(Math.min(initialMotionValue - lastMotionValue, 0) / FRACTION) + mInitialScrollValue;
 					break;
 				}
 				
@@ -220,6 +236,7 @@ public class BounceLayout extends LinearLayout {
 			
 		case MotionEvent.ACTION_UP:
 		case MotionEvent.ACTION_CANCEL:
+			Logger.d(LOG_TAG, "onTouchEvent up or cancel");
 			if (mIsBeingDragged) {
 				mIsBeingDragged = false;
 				smoothScrollTo(0);
@@ -385,8 +402,29 @@ public class BounceLayout extends LinearLayout {
 		}
 	}
 	
-	private void resetCoordinate() {
+	/**
+	 * 在点击屏幕的时候，获取当前layout的scroll值，因为这个值可能不为0，
+	 * 后续的{@link #doScroll(int)}操作都要在这个值的基础上来进行。
+	 * @return
+	 */
+	private int getInitialScrollValue() {
+		int value = 0;
+		switch (getPullOrientation()) {
+		case HORIZONTAL:
+			value = getScrollX();
+			break;
+			
+		case VERTICAL:
+		default:
+			value = getScrollY();
+			break;
+		}
+		return value;
+	}
+	
+	private void resetValues() {
 		mInitialMotionX = mInitialMotionY = mLastMotionX = mLastMotionY = INVALID_COORDINATE;
+		mInitialScrollValue = 0;
 	}
 	
 	public static enum Mode {
