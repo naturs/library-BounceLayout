@@ -300,22 +300,25 @@ public class BounceLayout extends LinearLayout {
 				oldScrollValue = getScrollY();
 				break;
 			}
+			
+			final int deltaValue = newScrollValue - oldScrollValue;
+			
 			if (oldScrollValue != newScrollValue) {
 				switch (getPullOrientation()) {
 				case HORIZONTAL:
 					if (duration > 0) {
-						mScroller.startScroll(oldScrollValue, 0, newScrollValue - oldScrollValue, 0, duration, l);
+						mScroller.startScroll(oldScrollValue, 0, deltaValue, 0, duration, l);
 					} else {
-						mScroller.startScroll(oldScrollValue, 0, newScrollValue - oldScrollValue, 0, l);
+						mScroller.startScroll(oldScrollValue, 0, deltaValue, 0, l);
 					}
 					break;
 					
 				case VERTICAL:
 				default:
 					if (duration > 0) {
-						mScroller.startScroll(0, oldScrollValue, 0, newScrollValue - oldScrollValue, duration, l);
+						mScroller.startScroll(0, oldScrollValue, 0, deltaValue, duration, l);
 					} else {
-						mScroller.startScroll(0, oldScrollValue, 0, newScrollValue - oldScrollValue, l);
+						mScroller.startScroll(0, oldScrollValue, 0, deltaValue, l);
 					}
 					break;
 				}
